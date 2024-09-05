@@ -1,0 +1,28 @@
+// app.js
+const express = require("express");
+const bodyParser = require("body-parser");
+const cors = require("cors");
+
+const app = express();
+const port = 3000;
+
+app.use(cors());
+app.use(bodyParser.json());
+
+// Import Routes
+const itemsRouter = require("./routes/items");
+const requestsRouter = require("./routes/requests");
+const usersRouter = require("./routes/users");
+const transactionsRouter = require("./routes/transactions");
+const bookmarksRouter = require("./routes/bookmarks");
+
+// Use Routes
+app.use("/api/items", itemsRouter);
+app.use("/api/requests", requestsRouter);
+app.use("/api/users", usersRouter);
+app.use("/api/transactions", transactionsRouter);
+app.use("/api/bookmarks", bookmarksRouter);
+
+app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
+});
