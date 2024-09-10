@@ -37,6 +37,7 @@ router.post("/", async (req, res) => {
     );
     res.status(201).json({ message: "Item added successfully" });
   } catch (err) {
+    console.error("Error adding item:", err.message); // Tambahkan logging error
     res.status(500).json({ error: err.message });
   }
 });
