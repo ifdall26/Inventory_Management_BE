@@ -26,6 +26,33 @@ router.get("/:id_request", async (req, res) => {
   }
 });
 
+// Get requests by user ID
+router.get("/user/:id_user", async (req, res) => {
+  const { id_user } = req.params;
+  console.log(`Fetching requests for user with id_user: ${id_user}`);
+
+  try {
+    // Query untuk mengambil data request berdasarkan id_user
+    const [rows] = await pool.query(
+      "SELECT * FROM requests WHERE id_user = ?",
+      [Number(id_user)] // Pastikan id_user berupa angka
+    );
+
+    console.log("Query result:", rows);
+
+    if (rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No requests found for this user" });
+    }
+
+    res.json(rows); // Kirim hasil query sebagai JSON
+  } catch (err) {
+    console.error("Error querying database:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Create new request
 router.post("/", async (req, res) => {
   const { kode_barang, nama_user, quantity_diminta, status, catatan, id_user } =
@@ -47,38 +74,6 @@ router.post("/", async (req, res) => {
     res.status(201).json({ message: "Request created successfully" });
   } catch (err) {
     console.error("Error during request creation:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Update request status
-router.put("/:id_request/status", async (req, res) => {
-  const { id_request } = req.params;
-  const { status } = req.body;
-
-  try {
-    await pool.query("UPDATE requests SET status = ? WHERE id_request = ?", [
-      status,
-      id_request,
-    ]);
-
-    if (status === "approved") {
-      const [request] = await pool.query(
-        "SELECT kode_barang, quantity_diminta FROM requests WHERE id_request = ?",
-        [id_request]
-      );
-      const { kode_barang, quantity_diminta } = request[0];
-
-      await pool.query(
-        "UPDATE items SET quantity = quantity - ? WHERE kode_barang = ?",
-        [quantity_diminta, kode_barang]
-      );
-    }
-
-    res.json({
-      message: "Request status updated and stock adjusted successfully",
-    });
-  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
