@@ -53,27 +53,55 @@ router.get("/user/:id_user", async (req, res) => {
   }
 });
 
-// Create new request
+// Create new request and update stock
 router.post("/", async (req, res) => {
   const { kode_barang, nama_user, quantity_diminta, status, catatan, id_user } =
     req.body;
-  console.log("Received data:", {
-    kode_barang,
-    nama_user,
-    quantity_diminta,
-    status,
-    catatan,
-    id_user,
-  });
+
+  // Validasi input
+  if (!kode_barang || !nama_user || !quantity_diminta || !status || !id_user) {
+    return res.status(400).json({ error: "All fields are required." });
+  }
+
+  // Validasi jumlah permintaan (quantity_diminta harus angka dan > 0)
+  if (isNaN(quantity_diminta) || quantity_diminta <= 0) {
+    return res.status(400).json({ error: "Invalid quantity requested." });
+  }
 
   try {
+    // Mulai transaksi
+    await pool.query("START TRANSACTION");
+
+    // Masukkan data request ke tabel requests
     await pool.query(
       "INSERT INTO requests (kode_barang, nama_user, quantity_diminta, status, tanggal_request, catatan, id_user) VALUES (?, ?, ?, ?, CURDATE(), ?, ?)",
       [kode_barang, nama_user, quantity_diminta, status, catatan, id_user]
     );
-    res.status(201).json({ message: "Request created successfully" });
+
+    // Kurangi stok barang di tabel barang_daerah
+    const [result] = await pool.query(
+      "UPDATE barang_daerah SET quantity = quantity - ? WHERE kode_barang = ?",
+      [quantity_diminta, kode_barang]
+    );
+
+    // Cek apakah barang ditemukan dan stok mencukupi
+    if (result.affectedRows === 0) {
+      throw new Error(
+        "Stok barang tidak mencukupi atau barang tidak ditemukan."
+      );
+    }
+
+    // Commit transaksi jika semuanya sukses
+    await pool.query("COMMIT");
+
+    // Kirim respon sukses
+    res
+      .status(201)
+      .json({ message: "Request created successfully and stock updated." });
   } catch (err) {
-    console.error("Error during request creation:", err);
+    // Rollback transaksi jika ada error
+    await pool.query("ROLLBACK");
+    console.error("Error during request creation and stock update:", err);
     res.status(500).json({ error: err.message });
   }
 });
