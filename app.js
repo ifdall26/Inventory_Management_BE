@@ -17,6 +17,7 @@ const transactionsRouter = require("./routes/transactions");
 const bookmarksRouter = require("./routes/bookmarks");
 const barangDaerahRouter = require("./routes/barang_daerah");
 const barangGudangRouter = require("./routes/barang_gudang");
+const requestsGudangRouter = require("./routes/requests_gudang");
 
 // Use Routes
 app.use("/api/items", itemsRouter);
@@ -26,6 +27,7 @@ app.use("/api/transactions", transactionsRouter);
 app.use("/api/bookmarks", bookmarksRouter);
 app.use("/api/barang_daerah", barangDaerahRouter);
 app.use("/api/barang_gudang", barangGudangRouter);
+app.use("/api/requests_gudang", requestsGudangRouter);
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
