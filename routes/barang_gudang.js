@@ -69,6 +69,36 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.put("/:kode_barang", async (req, res) => {
+  const { kode_barang } = req.params;
+  const { nama_barang, quantity, satuan, harga_satuan, tipe_barang } = req.body;
+
+  // Debug: Print the updated item data
+  console.log("Updating item with data:", {
+    nama_barang,
+    quantity,
+    satuan,
+    harga_satuan,
+    tipe_barang,
+  });
+
+  try {
+    const [result] = await pool.query(
+      "UPDATE barang_gudang SET nama_barang = ?, quantity = ?, satuan = ?, harga_satuan = ?, tipe_barang = ? WHERE kode_barang = ?",
+      [nama_barang, quantity, satuan, harga_satuan, tipe_barang, kode_barang]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    res.json({ message: "Item updated successfully" });
+  } catch (err) {
+    console.error("Error updating item:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Update item stock by name
 router.put("/by-name/:name", async (req, res) => {
   const { name } = req.params;
