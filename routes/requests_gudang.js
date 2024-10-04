@@ -96,7 +96,7 @@ router.delete("/:id_request", async (req, res) => {
 // Update status request (Persetujuan)
 router.put("/:id_request/approve", async (req, res) => {
   const { id_request } = req.params;
-  const { status } = req.body; // Status bisa "Disetujui"
+  const { status, catatan } = req.body; // Tambahkan catatan ke body request
 
   // Validasi status
   if (status !== "Disetujui") {
@@ -117,10 +117,10 @@ router.put("/:id_request/approve", async (req, res) => {
     const request = requestRows[0];
     const { quantity_diminta, nama_barang } = request;
 
-    // Update status request
+    // Update status request dan catatan
     await pool.query(
-      "UPDATE requests_gudang SET status = ? WHERE id_request = ?",
-      [status, id_request]
+      "UPDATE requests_gudang SET status = ?, catatan = ? WHERE id_request = ?",
+      [status, catatan, id_request] // Update catatan juga
     );
 
     // Update stok barang di tabel barang_gudang
@@ -149,10 +149,10 @@ router.put("/:id_request/approve", async (req, res) => {
 
     res.json({
       message:
-        "Status permintaan berhasil diperbarui dan stok barang diperbarui",
+        "Status permintaan berhasil diperbarui, stok barang diperbarui, dan catatan diperbarui",
     });
   } catch (err) {
-    console.error("Error updating request status and stock:", err);
+    console.error("Error updating request status, stock, and note:", err);
     res.status(500).json({ error: err.message });
   }
 });
