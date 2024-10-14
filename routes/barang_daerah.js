@@ -61,7 +61,7 @@ router.post("/", async (req, res) => {
 });
 
 router.get("/search", async (req, res) => {
-  const { tipe_barang, lokasi_daerah, lokasi_area } = req.query;
+  const { tipe_barang, lokasi_daerah, lokasi_area, gudang, lemari } = req.query;
 
   try {
     let query = "SELECT * FROM barang_daerah WHERE 1=1";
@@ -80,6 +80,16 @@ router.get("/search", async (req, res) => {
     if (lokasi_area) {
       query += " AND lokasi_area = ?";
       params.push(lokasi_area);
+    }
+
+    if (gudang) {
+      query += " AND gudang = ?";
+      params.push(gudang);
+    }
+
+    if (lemari) {
+      query += " AND lemari = ?";
+      params.push(lemari);
     }
 
     const [rows] = await pool.query(query, params);
