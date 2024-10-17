@@ -1,7 +1,11 @@
-// routes/barang_daerah.js
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
+const xlsx = require("xlsx");
 const pool = require("../config");
+
+// Konfigurasi multer untuk menangani file upload
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Get all barang daerah
 router.get("/", async (req, res) => {
@@ -10,6 +14,60 @@ router.get("/", async (req, res) => {
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Endpoint untuk meng-upload file Excel
+router.post("/upload_excel", upload.single("file"), async (req, res) => {
+  try {
+    const file = req.file;
+
+    // Baca data dari file Excel
+    const workbook = xlsx.read(file.buffer, { type: "buffer" });
+    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+    const jsonData = xlsx.utils.sheet_to_json(firstSheet); // Konversi ke JSON
+
+    // Simpan data ke database
+    for (const row of jsonData) {
+      const {
+        kode_lokasi,
+        kode_barang,
+        nama_barang,
+        quantity,
+        satuan,
+        harga_satuan,
+        lokasi_daerah,
+        lokasi_area,
+        tipe_barang,
+        gudang,
+        lemari,
+      } = row;
+
+      const sql = `
+        INSERT INTO barang_daerah (kode_lokasi, kode_barang, nama_barang, quantity, satuan, harga_satuan, lokasi_daerah, lokasi_area, tipe_barang, gudang, lemari)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      await pool.query(sql, [
+        kode_lokasi,
+        kode_barang,
+        nama_barang,
+        quantity,
+        satuan,
+        harga_satuan,
+        lokasi_daerah,
+        lokasi_area,
+        tipe_barang,
+        gudang,
+        lemari,
+      ]);
+    }
+
+    res
+      .status(200)
+      .json({ message: "Data berhasil diupload dan disimpan ke database." });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Terjadi kesalahan saat mengupload file." });
   }
 });
 
@@ -38,10 +96,12 @@ router.post("/", async (req, res) => {
     lokasi_daerah,
     lokasi_area,
     tipe_barang,
+    gudang,
+    lemari,
   } = req.body;
   try {
     await pool.query(
-      "INSERT INTO barang_daerah (kode_barang, nama_barang, quantity, satuan, harga_satuan, lokasi_daerah, lokasi_area, tipe_barang) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO barang_daerah (kode_barang, nama_barang, quantity, satuan, harga_satuan, lokasi_daerah, lokasi_area, tipe_barang, gudang, lemari) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         kode_barang,
         nama_barang,
@@ -51,15 +111,18 @@ router.post("/", async (req, res) => {
         lokasi_daerah,
         lokasi_area,
         tipe_barang,
+        gudang,
+        lemari,
       ]
     );
     res.status(201).json({ message: "Barang daerah added successfully" });
   } catch (err) {
-    console.error("Error adding barang daerah:", err.message); // Tambahkan logging error
+    console.error("Error adding barang daerah:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
+// Search barang daerah
 router.get("/search", async (req, res) => {
   const { tipe_barang, lokasi_daerah, lokasi_area, gudang, lemari } = req.query;
 
@@ -93,8 +156,6 @@ router.get("/search", async (req, res) => {
     }
 
     const [rows] = await pool.query(query, params);
-
-    // Pastikan respons berupa array (meskipun kosong)
     res.json(rows.length ? rows : []);
   } catch (err) {
     console.error("Error:", err.message);
@@ -113,6 +174,8 @@ router.put("/:kode_barang", async (req, res) => {
     lokasi_daerah,
     lokasi_area,
     tipe_barang,
+    gudang,
+    lemari,
   } = req.body;
   try {
     await pool.query(
@@ -126,6 +189,8 @@ router.put("/:kode_barang", async (req, res) => {
         lokasi_area,
         tipe_barang,
         kode_barang,
+        gudang,
+        lemari,
       ]
     );
     res.json({ message: "Barang daerah updated successfully" });
