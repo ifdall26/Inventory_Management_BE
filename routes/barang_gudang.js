@@ -1,7 +1,63 @@
 // routes/barang_gudang.js
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
+const xlsx = require("xlsx");
 const pool = require("../config");
+
+// Konfigurasi multer untuk menangani file upload
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Endpoint untuk meng-upload file Excel
+router.post(
+  "/upload_excel_barang_gudang",
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const file = req.file;
+
+      // Baca data dari file Excel
+      const workbook = xlsx.read(file.buffer, { type: "buffer" });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = xlsx.utils.sheet_to_json(firstSheet); // Konversi ke JSON
+
+      // Simpan data ke database
+      for (const row of jsonData) {
+        const {
+          kode_barang,
+          nama_barang,
+          quantity,
+          satuan,
+          harga_satuan,
+          tipe_barang,
+          lemari,
+        } = row;
+
+        const sql = `
+        INSERT INTO barang_gudang (kode_barang, nama_barang, quantity, satuan, harga_satuan, tipe_barang, lemari)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `;
+        await pool.query(sql, [
+          kode_barang,
+          nama_barang,
+          quantity,
+          satuan,
+          harga_satuan,
+          tipe_barang,
+          lemari,
+        ]);
+      }
+
+      res
+        .status(200)
+        .json({ message: "Data berhasil diupload dan disimpan ke database." });
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500);
+      // .json({ error: "Terjadi kesalahan saat mengupload file." });
+    }
+  }
+);
 
 // Get all barang_gudang
 router.get("/", async (req, res) => {
