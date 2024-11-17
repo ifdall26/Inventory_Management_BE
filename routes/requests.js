@@ -121,4 +121,33 @@ router.delete("/:id_request", async (req, res) => {
   }
 });
 
+// Endpoint untuk mendapatkan barang yang paling sering diminta
+router.get("/statistics/most-requested", async (req, res) => {
+  try {
+    console.log("Endpoint hit: /statistics/most-requested");
+
+    const query = `
+      SELECT 
+        kode_barang, 
+        COUNT(*) AS frequency, 
+        SUM(quantity_diminta) AS total_quantity 
+      FROM requests
+      WHERE status = 'Disetujui'
+      GROUP BY kode_barang
+      ORDER BY frequency DESC
+      LIMIT 5
+    `;
+    console.log("Executing query:", query);
+
+    // Use pool.query instead of db.query
+    const [rows] = await pool.query(query); // This line was incorrect
+    console.log("Query result:", rows);
+
+    res.json(rows);
+  } catch (err) {
+    console.error("Error occurred in /statistics/most-requested:", err);
+    res.status(500).json({ error: "Failed to fetch statistics." });
+  }
+});
+
 module.exports = router;
