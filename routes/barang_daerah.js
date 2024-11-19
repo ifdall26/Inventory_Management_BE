@@ -212,4 +212,68 @@ router.delete("/:kode_barang", async (req, res) => {
   }
 });
 
+// Barang Daerah Statistics
+router.get("/statistics/items-per-daerah", async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        lokasi_daerah, 
+        COUNT(*) AS total_items, 
+        SUM(quantity) AS total_quantity 
+      FROM barang_daerah
+      GROUP BY lokasi_daerah
+      ORDER BY total_items DESC;
+    `;
+    const [rows] = await pool.query(query);
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching items statistics by daerah:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Statistik berdasarkan lokasi daerah (dengan query parameter)
+router.get("/statistics/items-per-daerah-detail", async (req, res) => {
+  const { lokasi_daerah } = req.query;
+
+  console.log("Received lokasi_daerah parameter:", lokasi_daerah);
+
+  if (!lokasi_daerah) {
+    return res
+      .status(400)
+      .json({ error: "Parameter lokasi_daerah diperlukan." });
+  }
+
+  try {
+    const query = `
+      SELECT 
+        lokasi_area, 
+        gudang, 
+        lemari, 
+        COUNT(*) AS total_items, 
+        SUM(quantity) AS total_quantity
+      FROM barang_daerah
+      WHERE lokasi_daerah = ?
+      GROUP BY lokasi_area, gudang, lemari
+      ORDER BY lokasi_area ASC, gudang ASC, lemari ASC;
+    `;
+    console.log("Executing query with parameter:", lokasi_daerah);
+
+    const [rows] = await pool.query(query, [lokasi_daerah]);
+    console.log("Query result:", rows);
+
+    if (rows.length === 0) {
+      console.log("No data found for lokasi_daerah:", lokasi_daerah);
+      return res.status(404).json({
+        error: "Data tidak ditemukan untuk lokasi_daerah: " + lokasi_daerah,
+      });
+    }
+
+    res.json(rows);
+  } catch (err) {
+    console.error("Detailed error:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
+});
+
 module.exports = router;
