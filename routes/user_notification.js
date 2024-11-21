@@ -6,7 +6,7 @@ const pool = require("../config");
 router.get("/unnotification", async (req, res) => {
   try {
     const [rows] = await pool.query(
-      "SELECT * FROM requests_gudang WHERE status = 'disetujui' AND notified = 0"
+      "SELECT * FROM requests_gudang WHERE (status = 'disetujui' OR status = 'ditolak') AND notified = 0"
     );
     console.log("Query Result:", rows); // Tambahkan log untuk hasil query
     res.json(rows);
