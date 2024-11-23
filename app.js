@@ -22,6 +22,7 @@ const statisticsRouter = require("./routes/statistics");
 const userNotification = require("./routes/user_notification");
 const statisticsGudang = require("./routes/stat_gudang");
 const gudangNotification = require("./routes/gudang_notification");
+const barangDaerahNotification = require("./routes/barang_daerah_notificarion");
 
 // Use Routes
 app.use("/api/items", itemsRouter);
@@ -36,6 +37,7 @@ app.use("/api/statistics", statisticsRouter);
 app.use("/api/user_notification", userNotification);
 app.use("/api/stat_gudang", statisticsGudang);
 app.use("/api/gudang_notification", gudangNotification);
+app.use("/api/barang_daerah_notification", barangDaerahNotification);
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
