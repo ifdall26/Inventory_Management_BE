@@ -16,4 +16,18 @@ router.get("/notifications", async (req, res) => {
   }
 });
 
+// Endpoint: Notifikasi stok barang habis
+router.get("/low-stock", async (req, res) => {
+  try {
+    const [outOfStockItems] = await pool.query(
+      "SELECT kode_barang, nama_barang, quantity FROM barang_gudang WHERE quantity = 0"
+    );
+
+    res.json(outOfStockItems);
+  } catch (error) {
+    console.error("Error fetching low-stock notifications:", error);
+    res.status(500).json({ error: "Gagal mengambil notifikasi stok habis." });
+  }
+});
+
 module.exports = router;
