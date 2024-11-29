@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const { clusterRequests } = require("../controllers/clusteringController");
+const clusteringController = require("../controllers/clusteringController");
 
-// Endpoint clustering
-router.post("/clustering", clusterRequests);
+// Endpoint untuk mendapatkan hasil clustering
+router.get("/clustering", clusteringController.clusterRequests);
 
 module.exports = router;
