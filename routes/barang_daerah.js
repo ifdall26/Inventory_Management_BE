@@ -94,14 +94,81 @@ router.post("/upload_excel", upload.single("file"), async (req, res) => {
 });
 
 // Get barang daerah by kode_barang
-router.get("/:kode_barang", async (req, res) => {
-  const { kode_barang } = req.params;
+// router.get("/:kode_barang", async (req, res) => {
+//   const { kode_barang } = req.params;
+//   try {
+//     const [rows] = await pool.query(
+//       "SELECT * FROM barang_daerah WHERE kode_barang = ?",
+//       [kode_barang]
+//     );
+//     res.json(rows[0]);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+// Ambil data 1 barang berdasarkan kode_lokasi
+router.get("/:kode_lokasi", async (req, res) => {
+  const { kode_lokasi } = req.params;
+
   try {
     const [rows] = await pool.query(
-      "SELECT * FROM barang_daerah WHERE kode_barang = ?",
-      [kode_barang]
+      "SELECT * FROM barang_daerah WHERE kode_lokasi = ?",
+      [kode_lokasi]
     );
-    res.json(rows[0]);
+
+    console.log("Data barang yang ditemukan:", rows); // Log data yang ditemukan
+
+    if (rows.length === 0) {
+      console.log("Barang tidak ditemukan dengan kode_lokasi:", kode_lokasi); // Log jika data tidak ditemukan
+      return res.status(404).json({ message: "Barang tidak ditemukan" });
+    }
+
+    res.json(rows[0]); // Mengembalikan satu barang
+  } catch (err) {
+    console.error("Error:", err); // Log error di server
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update barang daerah
+router.put("/:kode_lokasi", async (req, res) => {
+  const { kode_lokasi } = req.params;
+  const {
+    kode_barang,
+    nama_barang,
+    quantity,
+    satuan,
+    harga_satuan,
+    lokasi_daerah,
+    lokasi_area,
+    tipe_barang,
+    gudang,
+    lemari,
+  } = req.body;
+
+  try {
+    await pool.query(
+      `UPDATE barang_daerah 
+       SET kode_barang = ?, nama_barang = ?, quantity = ?, satuan = ?, harga_satuan = ?, 
+           lokasi_daerah = ?, lokasi_area = ?, tipe_barang = ?, gudang = ?, lemari = ? 
+       WHERE kode_lokasi = ?`,
+      [
+        kode_barang,
+        nama_barang,
+        quantity,
+        satuan,
+        harga_satuan,
+        lokasi_daerah,
+        lokasi_area,
+        tipe_barang,
+        gudang,
+        lemari,
+        kode_lokasi,
+      ]
+    );
+
+    res.json({ message: "Barang daerah berhasil diperbarui" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -186,9 +253,10 @@ router.get("/search", async (req, res) => {
 });
 
 // Update barang daerah
-router.put("/:kode_barang", async (req, res) => {
-  const { kode_barang } = req.params;
+router.put("/:kode_lokasi", async (req, res) => {
+  const { kode_lokasi } = req.params;
   const {
+    kode_barang,
     nama_barang,
     quantity,
     satuan,
@@ -199,10 +267,23 @@ router.put("/:kode_barang", async (req, res) => {
     gudang,
     lemari,
   } = req.body;
+
   try {
-    await pool.query(
-      "UPDATE barang_daerah SET nama_barang = ?, quantity = ?, satuan = ?, harga_satuan = ?, lokasi_daerah = ?, lokasi_area = ?, tipe_barang = ? WHERE kode_barang = ?",
+    const result = await pool.query(
+      `UPDATE barang_daerah SET 
+        kode_barang = ?, 
+        nama_barang = ?, 
+        quantity = ?, 
+        satuan = ?, 
+        harga_satuan = ?, 
+        lokasi_daerah = ?, 
+        lokasi_area = ?, 
+        tipe_barang = ?, 
+        gudang = ?, 
+        lemari = ?
+      WHERE kode_lokasi = ?`,
       [
+        kode_barang,
         nama_barang,
         quantity,
         satuan,
@@ -210,23 +291,30 @@ router.put("/:kode_barang", async (req, res) => {
         lokasi_daerah,
         lokasi_area,
         tipe_barang,
-        kode_barang,
         gudang,
         lemari,
+        kode_lokasi,
       ]
     );
-    res.json({ message: "Barang daerah updated successfully" });
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ message: "Barang tidak ditemukan untuk diperbarui" });
+    }
+
+    res.json({ message: "Barang daerah berhasil diperbarui" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // Delete barang daerah
-router.delete("/:kode_barang", async (req, res) => {
-  const { kode_barang } = req.params;
+router.delete("/:kode_lokasi", async (req, res) => {
+  const { kode_lokasi } = req.params;
   try {
-    await pool.query("DELETE FROM barang_daerah WHERE kode_barang = ?", [
-      kode_barang,
+    await pool.query("DELETE FROM barang_daerah WHERE kode_lokasi = ?", [
+      kode_lokasi,
     ]);
     res.json({ message: "Barang daerah deleted successfully" });
   } catch (err) {
