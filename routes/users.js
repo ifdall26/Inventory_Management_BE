@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../config");
+const bcrypt = require("bcrypt"); // import bcrypt
 
 // Get all users
 router.get("/", async (req, res) => {
@@ -45,13 +46,17 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Email already in use." });
     }
 
-    // Role diatur default sebagai 'User'
+    // Role diatur default sebagai 'User Area'
     const role = "User Area";
 
-    // Masukkan user baru ke dalam database
+    // Buat hash dari password menggunakan bcrypt
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Masukkan user baru ke dalam database dengan password yang telah di-hash
     await pool.query(
       "INSERT INTO users (nama, email, password, role) VALUES (?, ?, ?, ?)",
-      [name, email, password, role]
+      [name, email, hashedPassword, role]
     );
 
     return res.status(201).json({ message: "User registered successfully!" });
@@ -83,8 +88,9 @@ router.post("/login", async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
-    // Cek apakah password cocok
-    if (user[0].password !== password) {
+    // Bandingkan password yang diberikan dengan hash yang disimpan
+    const isPasswordValid = await bcrypt.compare(password, user[0].password);
+    if (!isPasswordValid) {
       return res.status(401).json({ message: "Invalid password." });
     }
 
@@ -131,6 +137,36 @@ router.delete("/:id_user", async (req, res) => {
     res.json({ message: "User deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Hash semua password yang belum di-hash
+router.put("/rehash/all", async (req, res) => {
+  try {
+    const [users] = await pool.query("SELECT id_user, password FROM users");
+
+    const saltRounds = 10;
+    let updatedCount = 0;
+
+    for (let user of users) {
+      // Deteksi password yang belum di-hash (misalnya panjangnya < 60 karakter)
+      if (user.password.length < 60) {
+        const hashed = await bcrypt.hash(user.password, saltRounds);
+        await pool.query("UPDATE users SET password = ? WHERE id_user = ?", [
+          hashed,
+          user.id_user,
+        ]);
+        updatedCount++;
+      }
+    }
+
+    res.json({
+      message: `Password hashing completed.`,
+      updatedPasswords: updatedCount,
+    });
+  } catch (err) {
+    console.error("Error during password rehash:", err);
+    res.status(500).json({ error: "Failed to rehash passwords." });
   }
 });
 
