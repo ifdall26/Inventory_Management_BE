@@ -55,13 +55,29 @@ router.get("/user/:id_user", async (req, res) => {
 
 // Create new request and update stock
 router.post("/", async (req, res) => {
-  const { kode_barang, nama_user, quantity_diminta, status, catatan, id_user } =
-    req.body;
+  const {
+    kode_lokasi,
+    kode_barang,
+    nama_user,
+    quantity_diminta,
+    status,
+    catatan,
+    id_user,
+  } = req.body;
 
-  if (!kode_barang || !nama_user || !quantity_diminta || !status || !id_user) {
+  // Validasi field yang wajib
+  if (
+    !kode_lokasi ||
+    !kode_barang ||
+    !nama_user ||
+    !quantity_diminta ||
+    !status ||
+    !id_user
+  ) {
     return res.status(400).json({ error: "All fields are required." });
   }
 
+  // Validasi quantity
   if (isNaN(quantity_diminta) || quantity_diminta <= 0) {
     return res.status(400).json({ error: "Invalid quantity requested." });
   }
@@ -69,10 +85,10 @@ router.post("/", async (req, res) => {
   try {
     await pool.query("START TRANSACTION");
 
-    // Cek stok barang
+    // Cek stok berdasarkan kode_lokasi
     const [barang] = await pool.query(
-      "SELECT quantity FROM barang_daerah WHERE kode_barang = ?",
-      [kode_barang]
+      "SELECT quantity FROM barang_daerah WHERE kode_lokasi = ?",
+      [kode_lokasi]
     );
 
     if (barang.length === 0) {
@@ -83,16 +99,16 @@ router.post("/", async (req, res) => {
       throw new Error("Stok barang tidak mencukupi.");
     }
 
-    // Masukkan data request ke tabel requests
+    // Insert ke tabel requests (tanpa kode_lokasi karena tidak ada kolom tersebut)
     await pool.query(
       "INSERT INTO requests (kode_barang, nama_user, quantity_diminta, status, tanggal_request, catatan, id_user) VALUES (?, ?, ?, ?, CURDATE(), ?, ?)",
       [kode_barang, nama_user, quantity_diminta, status, catatan, id_user]
     );
 
-    // Kurangi stok barang
+    // Update stok barang
     const [result] = await pool.query(
-      "UPDATE barang_daerah SET quantity = quantity - ? WHERE kode_barang = ?",
-      [quantity_diminta, kode_barang]
+      "UPDATE barang_daerah SET quantity = quantity - ? WHERE kode_lokasi = ?",
+      [quantity_diminta, kode_lokasi]
     );
 
     if (result.affectedRows === 0) {
@@ -100,9 +116,11 @@ router.post("/", async (req, res) => {
     }
 
     await pool.query("COMMIT");
-    res
-      .status(201)
-      .json({ message: "Request created successfully and stock updated." });
+    res.status(201).json({
+      message: "Request created successfully and stock updated.",
+      kode_barang,
+      quantity_diminta,
+    });
   } catch (err) {
     await pool.query("ROLLBACK");
     console.error("Error during request creation and stock update:", err);
